@@ -614,8 +614,10 @@ SpaceTart({
 				end
 			end
 			if context.post_trigger and context.other_card.worm_meow_cinnamon_noped then
+				local ref_card = context.other_card
 				return {
 					func = function()
+						ref_card.worm_meow_cinnamon_noped = false
 						G.E_MANAGER:add_event(Event({
 							trigger = "after",
 							delay = 0.4,
@@ -1185,7 +1187,7 @@ function Card:stop_drag(...)
 		}
 		table.insert(closest.tarts, tart)
 
-		if closest.config and closest.config.center_key == "j_worm_meow_feli" then
+		if closest.config and (closest.config.center_key == "j_worm_meow_feli" or closest.config.center_key == "j_worm_mrrp_felicette") then
 			check_for_unlock({ type = "feli" })
 		end
 		G.E_MANAGER:add_event(Event({
@@ -1317,4 +1319,42 @@ function Game:update(dt, ...)
 			j.meow_force_draw_tart_count = false
 		end
 	end
+end
+
+-- Modify sell area for tarts
+if SilkTouch then
+	local old_condition = SilkTouch.DragTargets.C_sell.drag_condition
+	SilkTouch.DragTarget:take_ownership("C_sell", {
+		drag_condition = function(card)
+			return old_condition(card) and card.ability.set ~= "worm_meow_Spacetart"
+		end
+	}, true)
+	SilkTouch.DragTarget{
+		key = "tart_sell",
+		moveable_t = function()
+			return Moveable{
+				T = {
+					x = G.jokers.T.x,
+					y = G.jokers.T.y + G.jokers.T.h + 0.4,
+					w = G.jokers.T.w,
+					h = G.jokers.T.h + 0.6,
+				}
+			}
+		end,
+		text = function(card)
+			local sell_loc = copy_table(localize('ml_sell_target'))
+			sell_loc[#sell_loc+1] = localize('$')..card.sell_cost_label
+			return sell_loc
+		end,
+		colour = G.C.GOLD,
+		drag_condition = function(card)
+			return card.area and card.area == G.consumeables and card.ability.set == "worm_meow_Spacetart"
+		end,
+		active_check = function(card)
+			return card:can_sell_card()
+		end,
+		release_func = function(card)
+			G.FUNCS.sell_card{config = {ref_table = card}}
+		end,
+	}
 end
